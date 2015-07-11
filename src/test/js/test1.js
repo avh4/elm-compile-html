@@ -1,3 +1,5 @@
+'use strict';
+
 var expect = require('expect');
 var fs = require('fs');
 var child_process = require('child_process');
@@ -44,8 +46,10 @@ var writeFile = function(filename, content) {
 };
 
 var check = function(html, done) {
-  var elmCode = compile('View', html);
-  initElm().then(function() {
+  initElm()
+  .then(function() {
+    return compile('View', html);
+  }).then(function(elmCode) {
     return writeFile('View.elm', elmCode);
   }).then(function() {
     return exec('elm-make ../src/test/elm/Main.elm');

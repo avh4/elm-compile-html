@@ -50,6 +50,7 @@ var writeFile = function(filename, content) {
 };
 
 var check = function(html, done, expectedResult) {
+  if (!done) throw new Error('Forgot to pass done');
   initElm()
   .then(function() {
     return cleanElm();
@@ -81,5 +82,9 @@ describe('main', function() {
 
   it('should compile nested tags', function(done) {
     check('<strong><i></i></strong>', done);
+  });
+
+  it('should compile text', function(done) {
+    check('<b>B</b>', done);
   });
 });

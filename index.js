@@ -3,6 +3,10 @@
 var htmlparser = require('htmlparser2');
 var Q = require('kew');
 
+var quoteString = function(s) {
+  return "\"" + s + "\"";
+};
+
 var compile = function(moduleName, html) {
   var defer = Q.defer();
   var result = "" +
@@ -18,7 +22,7 @@ var compile = function(moduleName, html) {
       result += "Html." + name + " [] [";
     },
     ontext: function(text){
-      // TODO
+      result += "Html.text " + quoteString(text);
     },
     onclosetag: function(tagname){
       result += "]";

@@ -19,10 +19,6 @@ var exec = function(command) {
   return defer.promise;
 };
 
-var elmPackageInstall = function(packageName) {
-  return exec('elm-package install --yes ' + packageName);
-}
-
 var initElm = function() {
   var defer = Q.defer();
   defer.resolve();
@@ -30,7 +26,7 @@ var initElm = function() {
     return defer.promise;
   } else {
     return defer.promise.then(function() {
-      return elmPackageInstall('maxsnew/IO');
+      return exec('elm-package install --yes');
     });
   }
 };
@@ -47,18 +43,14 @@ var writeFile = function(filename, content) {
   return defer.promise;
 };
 
-var elmMake = function(filename) {
-  return exec('elm-make ' + filename);
-}
-
 var check = function(html, done) {
   var elmCode = compile('View', html);
   initElm().then(function() {
     return writeFile('View.elm', elmCode);
   }).then(function() {
-    return elmMake('Main.elm');
+    return exec('elm-make ../src/test/elm/Main.elm');
   }).then(function() {
-    return exec('./elm-io.sh elm.js elmio.js');
+    return exec('../src/test/elm/elm-io.sh elm.js elmio.js');
   }).then(function() {
     return exec('node ./elmio.js');
   }).then(function(result) {

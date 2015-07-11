@@ -4,7 +4,7 @@
   "description": "mustache template -> Elm compiler",
   "main": "index.js",
   "scripts": {
-    "test": "mocha src/test/js"
+    "test": "(mkdir -p tmp && cd tmp && cp ../src/test/elm/elm-package.json ./ && mocha ../src/test/js)"
   },
   "author": "Aaron VonderHaar <gruen0aermel@gmail.com>",
   "license": "MIT",

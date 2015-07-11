@@ -87,4 +87,8 @@ describe('main', function() {
   it('should compile text', function(done) {
     check('<b>B</b>', done);
   });
+
+  it('should compile multiple children', function(done) {
+    check('<h1><i></i><b></b></h1>', done);
+  });
 });

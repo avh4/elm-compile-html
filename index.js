@@ -16,9 +16,13 @@ var compile = function(moduleName, html) {
     "\n" +
     "view : Html\n" +
     "view = ";
+  var cur = {};
 
   var parser = new htmlparser.Parser({
     onopentag: function(name, attribs){
+      if (cur.closed) {
+        result += ', ';
+      }
       result += "Html." + name + " [] [";
     },
     ontext: function(text){
@@ -26,6 +30,7 @@ var compile = function(moduleName, html) {
     },
     onclosetag: function(tagname){
       result += "]";
+      cur.closed = true;
     },
     onend: function() {
       defer.resolve(result);

@@ -10,6 +10,7 @@
   "license": "MIT",
   "devDependencies": {
     "expect": "^1.6.0",
+    "htmlparser2": "^3.8.3",
     "kew": "^0.6.0",
     "mocha": "^2.2.5",
     "q": "^1.4.1"

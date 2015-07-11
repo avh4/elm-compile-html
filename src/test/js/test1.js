@@ -33,6 +33,10 @@ var initElm = function() {
   }
 };
 
+var cleanElm = function() {
+  return exec('rm -Rf ./elm-stuff/build-artifacts/USER');
+}
+
 var writeFile = function(filename, content) {
   var defer = Q.defer();
   fs.writeFile(filename, content, function(err) {
@@ -45,9 +49,11 @@ var writeFile = function(filename, content) {
   return defer.promise;
 };
 
-var check = function(html, done) {
+var check = function(html, done, expectedResult) {
   initElm()
   .then(function() {
+    return cleanElm();
+  }).then(function() {
     return compile('View', html);
   }).then(function(elmCode) {
     return writeFile('View.elm', elmCode);
@@ -58,7 +64,7 @@ var check = function(html, done) {
   }).then(function() {
     return exec('node ./elmio.js');
   }).then(function(result) {
-    expect(result).toEqual(html);
+    expect(result).toEqual(expectedResult || html);
   }).then(function() { done(); }, function(e) { done(e); });
 };
 
@@ -68,21 +74,8 @@ describe('main', function() {
   it('should compile a single HTML tag', function(done) {
     check('<body></body>', done);
   });
-  // it('should compile a single self-closing tag', function() {
-  //  expect(compile('View', '<div/>'))
-  //  .toEqual(
-  //    'module View where\n' +
-  //    '\n' +
-  //    ''
-  //    );
-  // });
-  // describe('single HTML node', function() {
 
-  // });
-  describe('#indexOf()', function () {
-    it('should return -1 when the value is not present', function () {
-      expect([1,2,3].indexOf(5)).toEqual(-1);
-      expect([1,2,3].indexOf(0)).toEqual(-1);
-    });
+  it('should compile a single self-closing tag', function(done) {
+    check('<div/>', done, '<div></div>');
   });
 });

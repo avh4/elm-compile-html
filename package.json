@@ -1,0 +1,17 @@
+{
+  "name": "elm-mustache",
+  "version": "1.0.0",
+  "description": "mustache template -> Elm compiler",
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha src/test/js"
+  },
+  "author": "Aaron VonderHaar <gruen0aermel@gmail.com>",
+  "license": "MIT",
+  "devDependencies": {
+    "expect": "^1.6.0",
+    "kew": "^0.6.0",
+    "mocha": "^2.2.5",
+    "q": "^1.4.1"
+  }
+}

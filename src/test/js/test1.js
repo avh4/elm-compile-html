@@ -78,4 +78,8 @@ describe('main', function() {
   it('should compile a single self-closing tag', function(done) {
     check('<div/>', done, '<div></div>');
   });
+
+  it('should compile nested tags', function(done) {
+    check('<strong><i></i></strong>', done);
+  });
 });

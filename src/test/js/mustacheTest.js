@@ -7,11 +7,21 @@ var formatString = function(s) {
   return '"' + s + '"';
 };
 
+var formatBoolean = function(b) {
+  return b ? 'True' : 'False';
+};
+
 var formatRecord = function(vars) {
   var result = "{ ";
   for (var k in vars) {
     var v = vars[k];
-    result += k + "=" + formatString(v);
+    if (typeof v == 'string') {
+      result += k + "=" + formatString(v);
+    } else if (typeof v == 'boolean') {
+      result += k + "=" + formatBoolean(v);
+    } else {
+      throw new Error('Unhandled type: ' + typeof v);
+    }
   }
   result += " }";
   return result;
@@ -59,6 +69,14 @@ describe('mustache', function() {
 
   it('should compile string variables', function() {
     return check('{{x}}', { x: '10'}, '10');
+  });
+
+  it('should compile bool variables (true)', function() {
+    return check('{{#b}}Text{{/b}}', { b: true }, "Text");
+  });
+
+  it('should compile bool variables (false)', function() {
+    return check('{{#b}}Text{{/b}}', { b: false }, "");
   });
 
   describe('official mustache spec', function() {

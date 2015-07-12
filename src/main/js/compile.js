@@ -38,6 +38,9 @@ var compile = function(moduleName, html) {
         }
         attrString += "Attr.attribute " + quoteString(attr) + " " + quoteString(attribs[attr]);
       }
+      if (attrString.length > 0) {
+        attrString = " " + attrString + " ";
+      }
       openChild();
       result += "Html.node " + quoteString(name) + "\n    [" + attrString + "]\n    [";
     },

@@ -10,4 +10,10 @@ describe('formatting', function() {
       expect(result).toContain('render = Html.node "div"\n    []\n    []');
     });
   });
+
+  it('should put space around a single attribute', function() {
+    return compile('View', '<div class="link"></div>').then(function(result) {
+      expect(result).toContain('render = Html.node "div"\n    [ Attr.attribute "class" "link" ]\n    []');
+    });
+  });
 });

@@ -13,6 +13,7 @@ var compile = function(moduleName, html) {
     "module " + moduleName + " where\n" +
     "\n" +
     "import Html exposing (Html)\n" +
+    "import Html.Attributes as Attr\n" +
     "\n" +
     "view : Html\n" +
     "view = ";
@@ -33,8 +34,15 @@ var compile = function(moduleName, html) {
 
   var parser = new htmlparser.Parser({
     onopentag: function(name, attribs) {
+      var attrString = "";
+      for (var attr in attribs) {
+        if (attrString[0]) {
+          attrString += ",";
+        }
+        attrString += "Attr." + attr + " " + quoteString(attribs[attr]);
+      }
       openChild();
-      result += "Html." + name + " [] [";
+      result += "Html." + name + " [" + attrString + "] [";
     },
     ontext: function(text){
       openChild();

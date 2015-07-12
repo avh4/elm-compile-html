@@ -9,16 +9,10 @@ var quoteString = function(s) {
 
 var compile = function(moduleName, html) {
   var defer = Q.defer();
-  var result = "" +
-    "module " + moduleName + " where\n" +
-    "\n" +
-    "import Html exposing (Html)\n" +
-    "import Html.Attributes as Attr\n" +
-    "\n" +
-    "view : Html\n" +
-    "view = ";
+  var result = "";
   var cur = {};
   var stack = [];
+  var needsOuterDiv = false;
 
   var openChild = function() {
     if (cur.closed) {
@@ -34,6 +28,9 @@ var compile = function(moduleName, html) {
 
   var parser = new htmlparser.Parser({
     onopentag: function(name, attribs) {
+      if (stack.length == 0 && cur.closed == true) {
+        needsOuterDiv = true;
+      }
       var attrString = "";
       for (var attr in attribs) {
         if (attrString[0]) {
@@ -54,6 +51,17 @@ var compile = function(moduleName, html) {
       closeChild();
     },
     onend: function() {
+      if (needsOuterDiv) {
+        result = "Html.div [] [" + result + "]";
+      }
+      result = "" +
+        "module " + moduleName + " where\n" +
+        "\n" +
+        "import Html exposing (Html)\n" +
+        "import Html.Attributes as Attr\n" +
+        "\n" +
+        "view : Html\n" +
+        "view = " + result + "\n";
       defer.resolve(result);
     },
     onerror: function(error) {

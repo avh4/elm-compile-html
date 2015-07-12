@@ -111,4 +111,8 @@ describe('main', function() {
   it('should compile class attributes', function(done) {
     check('<a class="button">Example</a>', done);
   });
+
+  it('should wrap multiple root elements in a div', function(done) {
+    check('<a></a><b></b>', done, '<div><a></a><b></b></div>');
+  });
 });

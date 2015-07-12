@@ -36,7 +36,7 @@ var compile = function(moduleName, html) {
         if (attrString[0]) {
           attrString += ",";
         }
-        attrString += "Attr." + attr + " " + quoteString(attribs[attr]);
+        attrString += "Attr.attribute" + quoteString(attr) + " " + quoteString(attribs[attr]);
       }
       openChild();
       result += "Html.node " + quoteString(name) + " [" + attrString + "] [";

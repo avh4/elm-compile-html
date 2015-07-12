@@ -27,7 +27,7 @@ text : String -> Node
 text t = t
 
 attribute : String -> String -> Property
-attribute name value = (name,value)
+attribute name value = (name, toString value)
 
 property : String -> Json.Value -> Property
 property name value = (name, toString value)

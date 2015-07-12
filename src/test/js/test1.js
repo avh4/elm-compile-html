@@ -119,4 +119,8 @@ describe('main', function() {
   it('should compile style tags', function(done) {
     check('<style>//</style>', done);
   });
+
+  it('should compile style attributes', function(done) {
+    check('<div style="background: red"></div>', done);
+  });
 });

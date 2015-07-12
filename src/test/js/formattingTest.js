@@ -34,4 +34,10 @@ describe('formatting', function() {
       expect(result).toContain('render = Html.node "div"\n    []\n    [ Html.node "a" [] []\n    , Html.node "b" [] []\n    ]');
     });
   });
+
+  it('should escape newlines', function() {
+    return compile('View', '<div>\n</div>').then(function(result) {
+      expect(result).toContain('render = Html.node "div"\n    []\n    [ Html.text "\\n" ]');
+    });
+  });
 });

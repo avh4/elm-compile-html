@@ -37,7 +37,9 @@ var compile = function(moduleName, html) {
       result += "Html." + name + " [] [";
     },
     ontext: function(text){
+      openChild();
       result += "Html.text " + quoteString(text);
+      closeChild();
     },
     onclosetag: function(tagname){
       result += "]";

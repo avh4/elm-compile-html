@@ -95,4 +95,8 @@ describe('main', function() {
   it('should compile multiple children at different levels', function(done) {
     check('<h1><i><a></a></i><b><a></a></b></h1>', done);
   });
+
+  it('should compile multiple children with text', function(done) {
+    check('<h1>I<i></i>IB<b></b>B</h1>', done);
+  });
 });

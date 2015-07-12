@@ -17,12 +17,23 @@ var compile = function(moduleName, html) {
     "view : Html\n" +
     "view = ";
   var cur = {};
+  var stack = [];
+
+  var openChild = function() {
+    if (cur.closed) {
+      result += ', ';
+    }
+    stack.push(cur);
+    cur = {};
+  };
+  var closeChild = function() {
+    cur = stack.pop();
+    cur.closed = true;
+  };
 
   var parser = new htmlparser.Parser({
-    onopentag: function(name, attribs){
-      if (cur.closed) {
-        result += ', ';
-      }
+    onopentag: function(name, attribs) {
+      openChild();
       result += "Html." + name + " [] [";
     },
     ontext: function(text){
@@ -30,7 +41,7 @@ var compile = function(moduleName, html) {
     },
     onclosetag: function(tagname){
       result += "]";
-      cur.closed = true;
+      closeChild();
     },
     onend: function() {
       defer.resolve(result);

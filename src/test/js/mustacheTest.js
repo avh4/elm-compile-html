@@ -63,5 +63,6 @@ describe('mustache', function() {
 
   describe('official mustache spec', function() {
     mustacheSpec('interpolation', 'No Interpolation');
+    mustacheSpec('interpolation', 'Basic Interpolation');
   });
 });

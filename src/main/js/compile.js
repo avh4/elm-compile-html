@@ -5,11 +5,24 @@ var Q = require('kew');
 var format = require('./format');
 
 var MustacheNode = function(text) {
-  if (text == '{{x}}') {
+  var match = text.match(/((?:.|[\r\n])*){{([^}]+)}}((?:.|[\r\n])*)/);
+  if (match) {
+    var name = match[2];
     this.toElm = function() {
-      return format.text("model.x");
+      return format.text(
+        format.infix(
+          format.infix(
+            format.string(match[1]),
+            "++",
+            "model." + name
+            ),
+          "++",
+          format.string(match[3])
+          )
+        );
     };
-    this.vars = { x: 'String' };
+    this.vars = {};
+    this.vars[name] = 'String';
   } else {
     this.toElm = function() {
       return format.text(format.string(text));

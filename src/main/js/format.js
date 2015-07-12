@@ -45,6 +45,10 @@ var recordType = function(fields) {
   return "{ " + entries.join(", ") + " }";
 };
 
+module.exports.infix = function(left, op, right) {
+  return left + " " + op + " " + right;
+};
+
 module.exports.node = function(name, attrs, children, indent) {
   var formattedAttrs = list(attrs, indent);
   var formattedChildren = list(children, indent);
@@ -72,7 +76,7 @@ module.exports.htmlModule = function(name, vars, root) {
     var render = function_("render", "Html", "", root);
     return module_(name, render);
   } else {
-    var model = typeAlias("Model", recordType({x:"String"}));
+    var model = typeAlias("Model", recordType(vars));
     var render = function_("render", "Model -> Html", "model", root);
     return module_(name, model + "\n\n" + render);
   }

@@ -39,7 +39,7 @@ var compile = function(moduleName, html) {
         attrString += "Attr." + attr + " " + quoteString(attribs[attr]);
       }
       openChild();
-      result += "Html." + name + " [" + attrString + "] [";
+      result += "Html.node " + quoteString(name) + " [" + attrString + "] [";
     },
     ontext: function(text){
       openChild();

@@ -115,4 +115,8 @@ describe('main', function() {
   it('should wrap multiple root elements in a div', function(done) {
     check('<a></a><b></b>', done, '<div><a></a><b></b></div>');
   });
+
+  it('should compile style tags', function(done) {
+    check('<style>//</style>', done);
+  });
 });

@@ -127,4 +127,8 @@ describe('main', function() {
   it('should escape tabs', function(done) {
     check('<div>\t</div>', done);
   });
+
+  it('should escape multiple tabs', function(done) {
+    check('<div>\t\t</div>', done);
+  });
 });

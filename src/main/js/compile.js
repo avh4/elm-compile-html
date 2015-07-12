@@ -26,6 +26,8 @@ var compile = function(moduleName, html) {
     cur.closed = true;
   };
 
+  var indent = "    ";
+
   var parser = new htmlparser.Parser({
     onopentag: function(name, attribs) {
       if (stack.length == 0 && cur.closed == true) {
@@ -41,10 +43,10 @@ var compile = function(moduleName, html) {
       } else if (attrStrings.length == 1) {
         attrString = "[ " + attrStrings[0] + " ]";
       } else {
-        attrString = "[ " + attrStrings.join("\n    , ") + "\n    ]";
+        attrString = "[ " + attrStrings.join("\n" + indent + ", ") + "\n" + indent + "]";
       }
       openChild();
-      result += "Html.node " + quoteString(name) + "\n    " + attrString + "\n    [";
+      result += "Html.node " + quoteString(name) + "\n" + indent + attrString + "\n" + indent + "[";
     },
     ontext: function(text){
       openChild();

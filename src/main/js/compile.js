@@ -27,7 +27,7 @@ var formatNode = function(name, attrs, children, indent) {
   } else {
     return "Html.node " + quoteString(name) + "\n"
         + indent + formatList(attrs, indent) + "\n"
-        + indent + formatList(children, indent) + "\n";
+        + indent + formatList(children, indent);
   }
 };
 
@@ -41,12 +41,12 @@ var formatAttribute = function(name, value) {
 
 var compile = function(moduleName, html) {
   var defer = Q.defer();
-  var cur = { children:[] };
+  var cur = { children:[], indent:"" };
   var stack = [];
 
   var openChild = function() {
     stack.push(cur);
-    cur = { children:[] };
+    cur = { children:[], indent: cur.indent+"    " };
   };
   var closeChild = function() {
     var closed = cur;
@@ -55,13 +55,11 @@ var compile = function(moduleName, html) {
     if (closed.type == "Html.text") {
       cur.children.push(formatText(closed.value));
     } else if (closed.type == "Html.node") {
-      cur.children.push(formatNode(closed.name, closed.attrStrings, closed.children, indent));
+      cur.children.push(formatNode(closed.name, closed.attrStrings, closed.children, closed.indent));
     } else {
       throw new Error("Internal error: invalid cur.type: " + closed.type);
     }
   };
-
-  var indent = "    ";
 
   var parser = new htmlparser.Parser({
     onopentag: function(tagname, attribs) {
@@ -88,7 +86,7 @@ var compile = function(moduleName, html) {
       if (cur.children.length == 1) {
         result = cur.children[0];
       } else {
-        result = formatNode("div", [], cur.children, indent);
+        result = formatNode("div", [], cur.children, "  ");
       }
       result = "" +
         "module " + moduleName + " where\n" +

@@ -35,6 +35,12 @@ describe('formatting', function() {
     });
   });
 
+  it('should indent nested children', function() {
+    return compile('View', '<div><a>Hi</a><b></b></div>').then(function(result) {
+      expect(result).toContain('render = Html.node "div"\n    []\n    [ Html.node "a"\n        []\n        [ Html.text "Hi" ]\n    , Html.node "b" [] []\n    ]');
+    });
+  });
+
   it('should escape newlines', function() {
     return compile('View', '<div>\n</div>').then(function(result) {
       expect(result).toContain('render = Html.node "div"\n    []\n    [ Html.text "\\n" ]');

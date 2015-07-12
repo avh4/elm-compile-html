@@ -33,7 +33,7 @@ var cleanElm = function() {
   return exec('rm -Rf ./elm-stuff/build-artifacts/USER');
 }
 
-var writeFile = function(filename, content) {
+var writeFile = module.exports.writeFile = function(filename, content) {
   var defer = Q.defer();
   fs.writeFile(filename, content, function(err) {
     if (err) {

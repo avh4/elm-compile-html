@@ -4,10 +4,25 @@ var htmlparser = require('htmlparser2');
 var Q = require('kew');
 var format = require('./format');
 
+var MustacheNode = function(text) {
+  if (text == '{{x}}') {
+    this.toElm = function() {
+      return format.text("model.x");
+    };
+    this.vars = { x: 'String' };
+  } else {
+    this.toElm = function() {
+      return format.text(format.string(text));
+    };
+    this.vars = {};
+  }
+};
+
 var compile = function(moduleName, html) {
   var defer = Q.defer();
   var cur = { children:[], indent:"" };
   var stack = [];
+  var vars = {};
 
   var openChild = function() {
     stack.push(cur);
@@ -18,7 +33,7 @@ var compile = function(moduleName, html) {
     cur = stack.pop();
 
     if (closed.type == "Html.text") {
-      cur.children.push(format.text(closed.value));
+      cur.children.push(closed.value.toElm());
     } else if (closed.type == "Html.node") {
       cur.children.push(format.node(closed.name, closed.attrStrings, closed.children, closed.indent));
     } else {
@@ -38,7 +53,8 @@ var compile = function(moduleName, html) {
     ontext: function(text){
       openChild();
       cur.type = "Html.text";
-      cur.value = text;
+      cur.value = new MustacheNode(text);
+      vars = cur.value.vars;
       closeChild();
     },
     onclosetag: function(tagname){
@@ -53,7 +69,7 @@ var compile = function(moduleName, html) {
       } else {
         root = format.node("div", [], cur.children, "  ");
       }
-      var module = format.htmlModule(moduleName, root);
+      var module = format.htmlModule(moduleName, vars, root);
       defer.resolve(module);
     },
     onerror: function(error) {

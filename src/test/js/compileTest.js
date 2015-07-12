@@ -3,9 +3,6 @@
 var expect = require('expect');
 var helper = require('./integrationHelper');
 
-
-
-
 var check = function(html, expectedResult) {
   return helper.compileHtml('View', html)
   .then(function() {

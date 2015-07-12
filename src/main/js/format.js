@@ -1,4 +1,6 @@
-var string = function(s) {
+'use strict';
+
+var string = module.exports.string = function(s) {
   return "\"" + s
     .replace(/\t/g, '\\t')
     .replace(/\n/g, '\\n')
@@ -16,9 +18,9 @@ var list = function(list, indent) {
   }
 };
 
-var function_ = function(name, type, body) {
+var function_ = function(name, type, vars, body) {
   return name + " : " + type + "\n" +
-         name + " = " + body + "\n";
+         name + (vars.length > 0 ? " " : "") + vars + " = " + body + "\n";
 };
 
 var module_ = function(name, body) {
@@ -28,6 +30,19 @@ var module_ = function(name, body) {
         "import Html.Attributes as Attr\n" +
         "\n" +
         body + "\n";
+};
+
+var typeAlias = function(name, definition) {
+  return "type alias " + name + " =" + definition;
+};
+
+var recordType = function(fields) {
+  var entries = [];
+  for (var k in fields) {
+    var v = fields[k];
+    entries.push(k + " : " + v);
+  }
+  return "{ " + entries.join(", ") + " }";
 };
 
 module.exports.node = function(name, attrs, children, indent) {
@@ -44,15 +59,21 @@ module.exports.node = function(name, attrs, children, indent) {
   }
 };
 
-module.exports.text = function(text) {
-  return "Html.text " + string(text);
+module.exports.text = function(value) {
+  return "Html.text " + value;
 };
 
 module.exports.attribute = function(name, value) {
   return "Attr.attribute " + string(name) + " " + string(value);
 };
 
-module.exports.htmlModule = function(name, root) {
-  var render = function_("render", "Html", root);
-  return module_(name, render);
+module.exports.htmlModule = function(name, vars, root) {
+  if (Object.keys(vars).length == 0) {
+    var render = function_("render", "Html", "", root);
+    return module_(name, render);
+  } else {
+    var model = typeAlias("Model", recordType({x:"String"}));
+    var render = function_("render", "Model -> Html", "model", root);
+    return module_(name, model + "\n\n" + render);
+  }
 };

@@ -16,6 +16,20 @@ var list = function(list, indent) {
   }
 };
 
+var function_ = function(name, type, body) {
+  return name + " : " + type + "\n" +
+         name + " = " + body + "\n";
+};
+
+var module_ = function(name, body) {
+  return "module " + name + " where\n" +
+        "\n" +
+        "import Html exposing (Html)\n" +
+        "import Html.Attributes as Attr\n" +
+        "\n" +
+        body + "\n";
+};
+
 module.exports.node = function(name, attrs, children, indent) {
   var formattedAttrs = list(attrs, indent);
   var formattedChildren = list(children, indent);
@@ -36,4 +50,9 @@ module.exports.text = function(text) {
 
 module.exports.attribute = function(name, value) {
   return "Attr.attribute " + string(name) + " " + string(value);
+};
+
+module.exports.htmlModule = function(name, root) {
+  var render = function_("render", "Html", root);
+  return module_(name, render);
 };

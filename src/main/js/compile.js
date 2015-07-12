@@ -47,21 +47,14 @@ var compile = function(moduleName, html) {
       closeChild();
     },
     onend: function() {
-      var result;
+      var root;
       if (cur.children.length == 1) {
-        result = cur.children[0];
+        root = cur.children[0];
       } else {
-        result = format.node("div", [], cur.children, "  ");
+        root = format.node("div", [], cur.children, "  ");
       }
-      result = "" +
-        "module " + moduleName + " where\n" +
-        "\n" +
-        "import Html exposing (Html)\n" +
-        "import Html.Attributes as Attr\n" +
-        "\n" +
-        "render : Html\n" +
-        "render = " + result + "\n";
-      defer.resolve(result);
+      var module = format.htmlModule(moduleName, root);
+      defer.resolve(module);
     },
     onerror: function(error) {
       defer.reject(error);

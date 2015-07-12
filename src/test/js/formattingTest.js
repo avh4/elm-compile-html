@@ -40,4 +40,10 @@ describe('formatting', function() {
       expect(result).toContain('render = Html.node "div"\n    []\n    [ Html.text "\\n" ]');
     });
   });
+
+  it('should escape carriage returns', function() {
+    return compile('View', '<div>\r\n</div>').then(function(result) {
+      expect(result).toContain('render = Html.node "div"\n    []\n    [ Html.text "\\r\\n" ]');
+    });
+  });
 });

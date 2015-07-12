@@ -4,7 +4,11 @@ var htmlparser = require('htmlparser2');
 var Q = require('kew');
 
 var quoteString = function(s) {
-  return "\"" + s.replace(/\t/g, '\\t').replace(/\n/g, '\\n') + "\"";
+  return "\"" + s
+    .replace(/\t/g, '\\t')
+    .replace(/\n/g, '\\n')
+    .replace(/\r/g, '\\r')
+    + "\"";
 };
 
 var formatList = function(list, indent) {

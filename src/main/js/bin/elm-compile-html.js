@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-var compile = require('./index.js');
+var compile = require('../compile.js');
 var fs = require('fs');
 
 var filename = process.argv[2];

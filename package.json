@@ -10,7 +10,7 @@
   "license": "MIT",
   "preferGlobal": true,
   "bin": {
-    "elm-compile-html": "elm-compile-html.js"
+    "elm-compile-html": "src/main/js/bin/elm-compile-html.js"
   },
   "devDependencies": {
     "expect": "^1.6.0",

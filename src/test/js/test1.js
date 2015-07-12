@@ -5,7 +5,7 @@ var fs = require('fs');
 var child_process = require('child_process');
 var Q = require('kew');
 
-var compile = require('../../../index.js');
+var compile = require('../../../src/main/js/compile.js');
 
 var exec = function(command) {
   var defer = Q.defer();
@@ -108,7 +108,7 @@ describe('main', function() {
     check('<a href="http://example.com" name="link">Example</a>', done);
   });
 
-  it('should class attributes', function(done) {
+  it('should compile class attributes', function(done) {
     check('<a class="button">Example</a>', done);
   });
 });

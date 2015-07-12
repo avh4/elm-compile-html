@@ -4,7 +4,7 @@ var htmlparser = require('htmlparser2');
 var Q = require('kew');
 
 var quoteString = function(s) {
-  return "\"" + s + "\"";
+  return "\"" + s.replace('\t', '\\t') + "\"";
 };
 
 var compile = function(moduleName, html) {

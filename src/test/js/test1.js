@@ -123,4 +123,8 @@ describe('main', function() {
   it('should compile style attributes', function(done) {
     check('<div style="background: red"></div>', done);
   });
+
+  it('should escape tabs', function(done) {
+    check('<div>\t</div>', done);
+  });
 });

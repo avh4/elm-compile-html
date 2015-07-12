@@ -1,6 +1,7 @@
 var child_process = require('child_process');
 var Q = require('kew');
 var fs = require('fs');
+var yaml = require('js-yaml');
 var compile = require('../../../src/main/js/compile');
 
 var exec = function(command) {
@@ -63,4 +64,11 @@ module.exports.runElmIO = function(file) {
   }).then(function() {
     return exec('node ./elmio.js');
   });
+};
+
+module.exports.readYaml = function(filename) {
+  var defer = Q.defer();
+  var doc = yaml.safeLoad(fs.readFileSync(filename, 'utf8'));
+  defer.resolve(doc);
+  return defer.promise;
 };

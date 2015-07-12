@@ -22,12 +22,16 @@ var formatList = function(list, indent) {
 };
 
 var formatNode = function(name, attrs, children, indent) {
+  var formattedAttrs = formatList(attrs, indent);
+  var formattedChildren = formatList(children, indent);
   if (attrs.length == 0 && children.length == 0) {
     return "Html.node " + quoteString(name) + " [] []";
+  } else if (formattedAttrs.indexOf('\n') == -1 && formattedChildren.indexOf('\n') == -1 && indent.length + formattedAttrs.length + formattedChildren.length < 100) {
+    return "Html.node " + quoteString(name) + " " + formattedAttrs + " " + formattedChildren;
   } else {
     return "Html.node " + quoteString(name) + "\n"
-        + indent + formatList(attrs, indent) + "\n"
-        + indent + formatList(children, indent);
+        + indent + formattedAttrs + "\n"
+        + indent + formattedChildren;
   }
 };
 

@@ -31,18 +31,20 @@ var compile = function(moduleName, html) {
       if (stack.length == 0 && cur.closed == true) {
         needsOuterDiv = true;
       }
-      var attrString = "";
+      var attrStrings = [];
       for (var attr in attribs) {
-        if (attrString[0]) {
-          attrString += ",";
-        }
-        attrString += "Attr.attribute " + quoteString(attr) + " " + quoteString(attribs[attr]);
+        attrStrings.push("Attr.attribute " + quoteString(attr) + " " + quoteString(attribs[attr]));
       }
-      if (attrString.length > 0) {
-        attrString = " " + attrString + " ";
+      var attrString;
+      if (attrStrings.length == 0) {
+        attrString = "[]";
+      } else if (attrStrings.length == 1) {
+        attrString = "[ " + attrStrings[0] + " ]";
+      } else {
+        attrString = "[ " + attrStrings.join("\n    , ") + "\n    ]";
       }
       openChild();
-      result += "Html.node " + quoteString(name) + "\n    [" + attrString + "]\n    [";
+      result += "Html.node " + quoteString(name) + "\n    " + attrString + "\n    [";
     },
     ontext: function(text){
       openChild();

@@ -16,4 +16,10 @@ describe('formatting', function() {
       expect(result).toContain('render = Html.node "div"\n    [ Attr.attribute "class" "link" ]\n    []');
     });
   });
+
+  it('should indent multiple attributes', function() {
+    return compile('View', '<div class="link" data-tooltip="example"></div>').then(function(result) {
+      expect(result).toContain('render = Html.node "div"\n    [ Attr.attribute "class" "link"\n    , Attr.attribute "data-tooltip" "example"\n    ]\n    []');
+    });
+  });
 });

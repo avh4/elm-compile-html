@@ -69,7 +69,7 @@ var check = function(html, done, expectedResult) {
   }).then(function() { done(); }, function(e) { done(e); });
 };
 
-describe('main', function() {
+describe('compile', function() {
   this.timeout(2*60*1000); // Only really necessary when ./elm-stuff/ doesn't exist
   
   it('should compile a single HTML tag', function(done) {

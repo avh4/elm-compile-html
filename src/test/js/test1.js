@@ -107,4 +107,8 @@ describe('main', function() {
   it('should compile multiple attributes', function(done) {
     check('<a href="http://example.com" name="link">Example</a>', done);
   });
+
+  it('should class attributes', function(done) {
+    check('<a class="button">Example</a>', done);
+  });
 });

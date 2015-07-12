@@ -11,7 +11,10 @@ node : String -> List Property -> List Node -> Node
 node name properties children =
     let
         childrenString = children |> String.join ""
-        propToString (k,v) = k ++ "=" ++ v
+        translatePropName p = case p of
+            "className" -> "class"
+            _ -> p
+        propToString (k,v) = (translatePropName k) ++ "=" ++ v
         propertiesString = properties |> List.map propToString |> String.join " "
         propertiesSpacing = case properties of
             [] -> ""

@@ -7,59 +7,84 @@ var quoteString = function(s) {
   return "\"" + s.replace(/\t/g, '\\t') + "\"";
 };
 
+var formatList = function(list, indent) {
+  if (list.length == 0) {
+    return "[]";
+  } else if (list.length == 1) {
+    return "[ " + list[0] + " ]";
+  } else {
+    return "[ " + list.join("\n" + indent + ", ") + "\n" + indent + "]";
+  }
+};
+
+var formatNode = function(name, attrs, children, indent) {
+  if (attrs.length == 0 && children.length == 0) {
+    return "Html.node " + quoteString(name) + " [] []";
+  } else {
+    return "Html.node " + quoteString(name) + "\n"
+        + indent + formatList(attrs, indent) + "\n"
+        + indent + formatList(children, indent) + "\n";
+  }
+};
+
+var formatText = function(text) {
+  return "Html.text " + quoteString(text);
+};
+
+var formatAttribute = function(name, value) {
+  return "Attr.attribute " + quoteString(name) + " " + quoteString(value);
+};
+
 var compile = function(moduleName, html) {
   var defer = Q.defer();
-  var result = "";
-  var cur = {};
+  var cur = { children:[] };
   var stack = [];
-  var needsOuterDiv = false;
 
   var openChild = function() {
-    if (cur.closed) {
-      result += ', ';
-    }
     stack.push(cur);
-    cur = {};
+    cur = { children:[] };
   };
   var closeChild = function() {
+    var closed = cur;
     cur = stack.pop();
-    cur.closed = true;
+
+    if (closed.type == "Html.text") {
+      cur.children.push(formatText(closed.value));
+    } else if (closed.type == "Html.node") {
+      cur.children.push(formatNode(closed.name, closed.attrStrings, closed.children, indent));
+    } else {
+      throw new Error("Internal error: invalid cur.type: " + closed.type);
+    }
   };
 
   var indent = "    ";
 
   var parser = new htmlparser.Parser({
-    onopentag: function(name, attribs) {
-      if (stack.length == 0 && cur.closed == true) {
-        needsOuterDiv = true;
-      }
+    onopentag: function(tagname, attribs) {
+      openChild();
       var attrStrings = [];
       for (var attr in attribs) {
-        attrStrings.push("Attr.attribute " + quoteString(attr) + " " + quoteString(attribs[attr]));
+        attrStrings.push(formatAttribute(attr, attribs[attr]));
       }
-      var attrString;
-      if (attrStrings.length == 0) {
-        attrString = "[]";
-      } else if (attrStrings.length == 1) {
-        attrString = "[ " + attrStrings[0] + " ]";
-      } else {
-        attrString = "[ " + attrStrings.join("\n" + indent + ", ") + "\n" + indent + "]";
-      }
-      openChild();
-      result += "Html.node " + quoteString(name) + "\n" + indent + attrString + "\n" + indent + "[";
+      cur.attrStrings = attrStrings;
     },
     ontext: function(text){
       openChild();
-      result += "Html.text " + quoteString(text);
+      cur.type = "Html.text";
+      cur.value = text;
       closeChild();
     },
     onclosetag: function(tagname){
-      result += "]";
+      cur.type = "Html.node";
+      cur.name = tagname;
       closeChild();
     },
     onend: function() {
-      if (needsOuterDiv) {
-        result = "Html.div [] [" + result + "]";
+      var result;
+      if (cur.children.length == 1) {
+        result = cur.children[0];
+      } else {
+        result = formatNode("div", [], cur.children, indent);
       }
       result = "" +
         "module " + moduleName + " where\n" +

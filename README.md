@@ -20,7 +20,7 @@ You can now import `MyHtmlFile` as an Elm module:
 ```elm
 import MyHtmlFile
 
-main = MyHtmlFile.view
+main = MyHtmlFile.render
 ```
 
 

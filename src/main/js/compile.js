@@ -60,8 +60,8 @@ var compile = function(moduleName, html) {
         "import Html exposing (Html)\n" +
         "import Html.Attributes as Attr\n" +
         "\n" +
-        "view : Html\n" +
-        "view = " + result + "\n";
+        "render : Html\n" +
+        "render = " + result + "\n";
       defer.resolve(result);
     },
     onerror: function(error) {

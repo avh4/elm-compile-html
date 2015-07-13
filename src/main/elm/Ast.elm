@@ -18,8 +18,6 @@ toElmCode = transduceSingleToString (toElm >>> Elm.toString)
 -- ElmWriter
 --
 
-withUnit a = ((),a)
-
 attrToElm : (Elm.Token -> r -> r) -> Attr -> r -> r
 attrToElm reduce (k,v) =
   reduce (Elm.startFnCall "Attr.attribute")
@@ -69,7 +67,7 @@ toElm' reduce m r = case m of
 toElm : Transducer Module Elm.Token r ()
 toElm =
   { init = \reduce r -> ((),r)
-  , step = \reduce input (_,r) -> toElm' reduce input r |> withUnit
+  , step = \reduce input (_,r) -> ((),toElm' reduce input r)
   , complete = \reduce (_,r) -> r
   }
 

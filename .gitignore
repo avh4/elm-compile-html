@@ -1,2 +1,4 @@
 /node_modules/
 /tmp/
+/src/main/elm/elm-stuff/
+/src/main/elm/elm.js

@@ -4,7 +4,10 @@
   "description": "mustache template -> Elm compiler",
   "main": "index.js",
   "scripts": {
-    "test": "(mkdir -p tmp && cd tmp && cp ../src/test/elm/elm-package.json ./ && mocha ../src/test/js)"
+    "pretest": "npm run-script prepublish",
+    "test": "(mkdir -p tmp && cd tmp && cp ../src/test/elm/elm-package.json ./ && mocha ../src/test/js)",
+    "clean": "rm -Rf tmp src/main/elm/elm.js src/main/elm/elm-stuff/build-artifacts",
+    "prepublish": "(cd src/main/elm && elm-make --yes Ast.elm)"
   },
   "author": "Aaron VonderHaar <gruen0aermel@gmail.com>",
   "license": "MIT",
@@ -12,6 +15,10 @@
   "bin": {
     "elm-compile-html": "src/main/js/bin/elm-compile-html.js"
   },
+  "files": [
+    "src/main/js/",
+    "src/main/elm/elm.js"
+  ],
   "devDependencies": {
     "expect": "^1.6.0",
     "js-yaml": "^3.3.1",

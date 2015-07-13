@@ -3,6 +3,7 @@
 var htmlparser = require('htmlparser2');
 var Q = require('kew');
 var format = require('./format');
+var ast = require('./ast');
 
 var MustacheNode = function(text) {
   this.vars = {};
@@ -39,56 +40,43 @@ var MustacheNode = function(text) {
 
 var compile = function(moduleName, html) {
   var defer = Q.defer();
-  var cur = { children:[], indent:"" };
-  var stack = [];
   var vars = {};
+  var a = ast.start();
 
-  var openChild = function() {
-    stack.push(cur);
-    cur = { children:[], indent: cur.indent+"    " };
-  };
-  var closeChild = function() {
-    var closed = cur;
-    cur = stack.pop();
-
-    if (closed.type == "Html.text") {
-      cur.children.push(closed.value.toElm());
-    } else if (closed.type == "Html.node") {
-      cur.children.push(format.node(closed.name, closed.attrStrings, closed.children, closed.indent));
+  var unwrapResult = function(result) {
+    if (result.ctor == 'Ok') {
+      return result._0;
+    } else if (result.ctor == 'Err') {
+      throw new Error(result._0);
     } else {
-      throw new Error("Internal error: invalid cur.type: " + closed.type);
+      throw new Error("Internal error: not a Result: " + result);
     }
   };
 
   var parser = new htmlparser.Parser({
     onopentag: function(tagname, attribs) {
-      openChild();
-      var attrStrings = [];
-      for (var attr in attribs) {
-        attrStrings.push(format.attribute(attr, attribs[attr]));
+      var attrs = { ctor: '[]' };
+      for (var key in attribs) {
+        var value = attribs[key];
+        var tuple = { ctor: '_Tuple2', _0: key, _1: value };
+        attrs = { ctor: '::', _0: tuple,  _1: attrs };
       }
-      cur.attrStrings = attrStrings;
+      a = ast.openTag(tagname, attrs, a);
     },
     ontext: function(text){
-      openChild();
-      cur.type = "Html.text";
-      cur.value = new MustacheNode(text);
-      vars = cur.value.vars;
-      closeChild();
+      a = ast.text(text, a);
+      // console.log(a);
+      // openChild();
+      // cur.type = "Html.text";
+      // cur.value = new MustacheNode(text);
+      // vars = cur.value.vars;
+      // closeChild();
     },
-    onclosetag: function(tagname){
-      cur.type = "Html.node";
-      cur.name = tagname;
-      closeChild();
+    onclosetag: function(tagname) {
+      a = unwrapResult(ast.closeTag(tagname, a));
     },
     onend: function() {
-      var root;
-      if (cur.children.length == 1) {
-        root = cur.children[0];
-      } else {
-        root = format.node("div", [], cur.children, "  ");
-      }
-      var module = format.htmlModule(moduleName, vars, root);
+      var module = ast.toElmCode(unwrapResult(ast.end(a)));
       defer.resolve(module);
     },
     onerror: function(error) {

@@ -64,7 +64,7 @@ var mustacheSpec = function(specFile, specName) {
   });
 };
 
-describe('mustache', function() {
+describe.skip('mustache', function() {
   this.timeout(2*60*1000); // Only really necessary when ./elm-stuff/ doesn't exist
 
   it('should compile string variables', function() {

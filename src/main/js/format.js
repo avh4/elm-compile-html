@@ -1,12 +1,5 @@
 'use strict';
 
-var string = module.exports.string = function(s) {
-  return "\"" + s
-    .replace(/\t/g, '\\t')
-    .replace(/\n/g, '\\n')
-    .replace(/\r/g, '\\r')
-    + "\"";
-};
 
 var list = function(list, indent) {
   if (list.length == 0) {
@@ -21,15 +14,6 @@ var list = function(list, indent) {
 var function_ = function(name, type, vars, body) {
   return name + " : " + type + "\n" +
          name + (vars.length > 0 ? " " : "") + vars + " = " + body + "\n";
-};
-
-var module_ = function(name, body) {
-  return "module " + name + " where\n" +
-        "\n" +
-        "import Html exposing (Html)\n" +
-        "import Html.Attributes as Attr\n" +
-        "\n" +
-        body + "\n";
 };
 
 var typeAlias = function(name, definition) {
@@ -65,10 +49,6 @@ module.exports.node = function(name, attrs, children, indent) {
 
 module.exports.text = function(value) {
   return "Html.text " + value;
-};
-
-module.exports.attribute = function(name, value) {
-  return "Attr.attribute " + string(name) + " " + string(value);
 };
 
 module.exports.htmlModule = function(name, vars, root) {

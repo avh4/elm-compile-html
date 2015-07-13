@@ -58,7 +58,7 @@ module.exports.compileHtml = function(module, html) {
 };
 
 module.exports.runElmIO = function(file) {
-  return exec('elm-make ' + file)
+  return exec('elm-make --yes ' + file)
   .then(function() {
     return exec('../src/test/elm/elm-io.sh elm.js elmio.js');
   }).then(function() {

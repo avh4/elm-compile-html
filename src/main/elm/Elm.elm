@@ -70,9 +70,9 @@ write reduce expr r = case expr of
       |> write reduce a
       |> reduce " ]"
     (a::rest) -> r
-      |> reduce "["
+      |> reduce "[ "
       |> write reduce a
-      |> \r -> List.foldl (\e r -> r |> reduce ", " |> write reduce e) r rest
+      |> \r -> List.foldl (\e r -> r |> reduce "\n    , " |> write reduce e) r rest
       |> reduce "]"
   ApplyExpr name exprs -> r
     |> reduce name

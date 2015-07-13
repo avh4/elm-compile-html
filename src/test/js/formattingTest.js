@@ -4,7 +4,7 @@ var expect = require('expect');
 
 var compile = require('../../../src/main/js/compile.js');
 
-describe.skip('formatting', function() {
+describe('formatting', function() {
   it('should put empty node on one line', function() {
     return compile('View', '<div></div>').then(function(result) {
       expect(result).toContain('render = Html.node "div" [] []');
@@ -17,7 +17,7 @@ describe.skip('formatting', function() {
     });
   });
 
-  it('should indent multiple attributes', function() {
+  it.skip('should indent multiple attributes', function() {
     return compile('View', '<div class="link" data-tooltip="example"></div>').then(function(result) {
       expect(result).toContain('render = Html.node "div"\n    [ Attr.attribute "class" "link"\n    , Attr.attribute "data-tooltip" "example"\n    ]\n    []');
     });
@@ -29,13 +29,13 @@ describe.skip('formatting', function() {
     });
   });
 
-  it('should indent multiple children', function() {
+  it.skip('should indent multiple children', function() {
     return compile('View', '<div><a></a><b></b></div>').then(function(result) {
       expect(result).toContain('render = Html.node "div"\n    []\n    [ Html.node "a" [] []\n    , Html.node "b" [] []\n    ]');
     });
   });
 
-  it('should indent nested children', function() {
+  it.skip('should indent nested children', function() {
     return compile('View', '<div><a>Hi<i></i></a><b></b></div>').then(function(result) {
       expect(result).toContain('render = Html.node "div"\n    []\n    [ Html.node "a"\n        []\n        [ Html.text "Hi"\n        , Html.node "i" [] []\n        ]\n    , Html.node "b" [] []\n    ]');
     });

@@ -18,16 +18,29 @@ toElmCode node = transduceSingleToString (toElm >>> Elm.toString) node
 
 withUnit a = ((),a)
 
-toElm' : Node -> Elm.Token
-toElm' input = case input of
-  Node name attrs children ->
-    Elm.fnCall "Html.node"
-      [ Elm.string name
-      , Elm.list (List.map (\(k,v) -> Elm.fnCall "Attr.attribute" [Elm.string k, Elm.string v]) attrs |> List.reverse)
-      , Elm.list (List.map toElm' children)
-      ]
-  Text text ->
-    Elm.fnCall "Html.text" [ Elm.string text ]
+attrToElm : (Elm.Token -> r -> r) -> Attr -> r -> r
+attrToElm reduce (k,v) =
+  reduce (Elm.startFnCall "Attr.attribute")
+  >> reduce (Elm.string k)
+  >> reduce (Elm.string v)
+  >> reduce (Elm.endFnCall)
+
+nodeToElm : (Elm.Token -> r -> r) -> Node -> r -> r
+nodeToElm reduce node r = case node of
+  Node name attrs children -> r
+    |> reduce (Elm.startFnCall "Html.node")
+    |> reduce (Elm.string name)
+    |> reduce (Elm.startList)
+    |> \r -> List.foldl (attrToElm reduce) r attrs
+    |> reduce (Elm.endList)
+    |> reduce (Elm.startList)
+    |> \r -> List.foldr (nodeToElm reduce) r children
+    |> reduce (Elm.endList)
+    |> reduce (Elm.endFnCall)
+  Text text -> r
+    |> reduce (Elm.startFnCall "Html.text")
+    |> reduce (Elm.string text)
+    |> reduce (Elm.endFnCall)
 
 toElm : Transducer Node Elm.Token r ()
 toElm =
@@ -39,7 +52,7 @@ toElm =
     |> reduce (Elm.definitionStart "render" [])
     |> withUnit
   , step = \reduce input (_,r) -> r
-    |> reduce (toElm' input)
+    |> nodeToElm reduce input
     |> withUnit
   , complete = \_ (_,r) -> r
   }

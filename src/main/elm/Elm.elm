@@ -11,8 +11,6 @@ type Token
   | Module String
   | Import String (Maybe String) (List String)
   | TypeAnnotation String (List String)
-  | Nothing'
-  | Whitespace String
   | Tokens (List Token)
   | Equals
   | ListSeparator
@@ -23,8 +21,6 @@ string = ElmString
 module' = Module
 import' = Import
 typeAnnotation = TypeAnnotation
-startImports = Nothing'
-endImports = Whitespace "\n"
 startList = StartList
 endList = EndList
 list l = case l of
@@ -32,9 +28,7 @@ list l = case l of
   (a::[]) ->
     Tokens
       [ StartList
-      , Whitespace " "
       , Tokens (List.intersperse ListSeparator l)
-      , Whitespace " "
       , EndList
       ]
   _ ->
@@ -43,24 +37,13 @@ list l = case l of
     , Tokens (List.intersperse ListSeparator l)
     , EndList
     ]
-fnCall name ts = Tokens
-  [ identifier name
-  , Whitespace " "
-  , Tokens (List.intersperse (Whitespace " ") ts)
-  ]
-definitionStart name vars = Tokens
-  [ identifier name
-  , Whitespace " "
-  , Equals
-  , Whitespace " "
-  ]
+fnCall name ts = Tokens [ identifier name, Tokens ts ]
+definitionStart name vars = Tokens [ identifier name, Equals ]
 
 withUnit a = ((),a)
 
 step : (String -> r -> r) -> Token -> r -> r
 step reduce input value = case input of
-  Nothing' -> value
-  Whitespace s -> value |> reduce s
   Tokens ts -> List.foldl (step reduce) value ts
   Equals -> value |> reduce "="
   ListSeparator -> value |> reduce ", "

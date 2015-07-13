@@ -33,10 +33,8 @@ toElm : Transducer Node Elm.Token r ()
 toElm =
   { init = \reduce r -> r
     |> reduce (Elm.module' "View")
-    |> reduce (Elm.startImports)
     |> reduce (Elm.import' "Html" Nothing ["Html"])
     |> reduce (Elm.import' "Html.Attributes" (Just "Attr") [])
-    |> reduce (Elm.endImports)
     |> reduce (Elm.typeAnnotation "render" ["Html"])
     |> reduce (Elm.definitionStart "render" [])
     |> withUnit

@@ -4,10 +4,10 @@ import Transducer as T exposing (Transducer)
 import Transducer.Debug
 import String
 import Regex
+import Debug
 
 type Token
   = Identifier String
-  | ElmString String
   | Module String
   | Import String (Maybe String) (List String)
   | TypeAnnotation String (List String)
@@ -16,9 +16,12 @@ type Token
   | ListSeparator
   | StartList | EndList
   | StartFnCall String | EndFnCall
+  | TopLevelStatementToken TopLevelStatement
+  | ExprToken Expr
+  | StartIfToken | StartThenToken | StartElseToken
 
 identifier = Identifier
-string = ElmString
+string s = ExprToken <| LiteralExpr <| StringLiteral s
 module' = Module
 import' = Import
 typeAnnotation = TypeAnnotation
@@ -40,12 +43,33 @@ list l = case l of
     ]
 startFnCall = StartFnCall
 endFnCall = EndFnCall
-definitionStart name vars = Tokens [ identifier name, Equals ]
+definitionStart name vars = Tokens
+  [ identifier name
+  , Tokens (List.map identifier vars)
+  , Equals
+  ]
+typeAlias name vars =
+  AliasDef name (TRecord (List.map (\(k,v) -> TRecBind k (TVar v)) vars))
+  |> TopLevelStatementToken
+
+type Literal
+  = StringLiteral String
+
+type TRecBind = TRecBind String Type
+
+type Type
+  = TVar String
+  | TRecord (List TRecBind)
+
+type TopLevelStatement
+  = AliasDef String {-(List Pattern)-} Type
 
 type Expr
-  = StringExpr String
-  | ListExpr (List Expr) {-reversed-}
+  = ListExpr (List Expr) {-reversed-}
   | ApplyExpr String (List Expr) {-reversed-}
+  | IfExpr Expr Expr Expr
+  | LiteralExpr Literal
+  | RefExpr String
 
 type Zipper
   = Start
@@ -54,14 +78,6 @@ type Zipper
 
 write : (String -> r -> r) -> Expr -> r -> r
 write reduce expr r = case expr of
-  StringExpr s -> r
-    |> reduce "\""
-    |> reduce (s
-      |> Regex.replace Regex.All (Regex.regex "\t") (always "\\t")
-      |> Regex.replace Regex.All (Regex.regex "\n") (always "\\n")
-      |> Regex.replace Regex.All (Regex.regex "\r") (always "\\r")
-      )
-    |> reduce "\""
   ListExpr items -> case items of
     [] -> r
       |> reduce "[]"
@@ -77,11 +93,46 @@ write reduce expr r = case expr of
   ApplyExpr name exprs -> r
     |> reduce name
     |> \r -> List.foldr (\e r -> r |> reduce " " |> write reduce e) r exprs
+  IfExpr e1 e2 e3 -> r
+    |> reduce "if "
+    |> write reduce e1
+    |> reduce " then "
+    |> write reduce e2
+    |> reduce " else "
+    |> write reduce e3
+  LiteralExpr lit -> case lit of
+    StringLiteral s -> r
+      |> reduce "\""
+      |> reduce (s
+        |> Regex.replace Regex.All (Regex.regex "\t") (always "\\t")
+        |> Regex.replace Regex.All (Regex.regex "\n") (always "\\n")
+        |> Regex.replace Regex.All (Regex.regex "\r") (always "\\r")
+        )
+      |> reduce "\""
+  RefExpr name -> r
+    |> reduce name
 
 applyExpr reduce (state,value) expr = case state of
-  Start -> (state, write reduce expr value)
+  Start -> value |> write reduce expr |> (,) state
   InList z es -> value |> (,) (InList z (expr::es))
   InFnCall z n es -> value |> (,) (InFnCall z n (expr::es))
+
+applyType type' reduce value = case type' of
+  TVar name -> value
+    |> reduce name
+  TRecord bindings -> value
+    |> reduce "{ "
+    |> \r -> List.foldl (\(TRecBind k v) r -> r |> reduce k |> reduce " : " |> applyType v reduce) r bindings
+    |> reduce " }"
+
+applyTopLevelStatement reduce (state,value) statement = case statement of
+  AliasDef name type' -> value
+    |> reduce "\ntype alias "
+    |> reduce name
+    |> reduce " = "
+    |> applyType type' reduce
+    |> reduce "\n"
+    |> (,) state
 
 step : (String -> r -> r) -> Token -> (Zipper,r) -> (Zipper,r)
 step reduce input (state,value) = case input of
@@ -90,21 +141,23 @@ step reduce input (state,value) = case input of
   EndList -> case state of
     InList context items ->
       applyExpr reduce (context,value) (ListExpr items)
-    --_ -> crash
+    --_ -> Err
   StartFnCall name -> value
     |> (,) (InFnCall state name [])
   EndFnCall -> case state of
     InFnCall context name exprs ->
       applyExpr reduce (context,value) (ApplyExpr name exprs)
-    --_ -> crash
-  ElmString s -> applyExpr reduce (state,value) (StringExpr s)
+    --_ -> Err
+  Identifier name -> applyExpr reduce (state,value) (RefExpr name)
   Tokens ts -> List.foldl (step reduce) (state,value) ts
+  TopLevelStatementToken statement -> applyTopLevelStatement reduce (state,value) statement
+  ExprToken expr -> applyExpr reduce (state,value) expr
+  StartIfToken -> value |> reduce "if " |> (,) state
+  StartThenToken -> value |> reduce " then " |> (,) state
+  StartElseToken -> value |> reduce " else " |> (,) state
   Equals -> value |> reduce " = "
     |> (,) state
   ListSeparator -> value |> reduce ", "
-    |> (,) state
-  Identifier name -> value
-    |> reduce name
     |> (,) state
   Module name -> value
     |> reduce "module "

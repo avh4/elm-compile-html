@@ -42,7 +42,7 @@ var check = function(html, vars, expectedResult) {
   }).then(function() {
     return helper.runElmIO('../src/test/elm/Main.elm');
   }).then(function(result) {
-    expect(result).toEqual(expectedResult);
+    expect(result.replace(/^<div>/,'').replace(/<\/div>$/,'')).toEqual(expectedResult);
   });
 };
 
@@ -64,7 +64,7 @@ var mustacheSpec = function(specFile, specName) {
   });
 };
 
-describe.skip('mustache', function() {
+describe('mustache', function() {
   this.timeout(2*60*1000); // Only really necessary when ./elm-stuff/ doesn't exist
 
   it('should compile string variables', function() {

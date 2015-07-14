@@ -279,6 +279,7 @@ step reduce input (state,value) =
     |> reduce' (String.join "," expose)
     |> reduce' ")\n"
   TypeAnnotation name types -> (state,value)
+    |> reduce' "\n"
     |> reduce' name
     |> reduce' " : "
     |> reduce' (String.join " -> " types)

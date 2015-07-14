@@ -68,7 +68,7 @@ toElm' reduce m r = case m of
     |> reduce (Elm.module' name)
     |> reduce (Elm.import' "Html" Nothing ["Html"])
     |> reduce (Elm.import' "Html.Attributes" (Just "Attr") [])
-    |> reduce (Elm.typeAlias "Model" vars)
+    |> (if vars == [] then identity else reduce (Elm.typeAlias "Model" vars))
     |> reduce (Elm.typeAnnotation "render" (if vars == [] then ["Html"] else ["Model", "Html"]))
     |> reduce (Elm.definitionStart "render" (if vars == [] then [] else [" model"]))
     |> nodeToElm reduce node

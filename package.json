@@ -2,7 +2,7 @@
   "name": "elm-compile-html",
   "version": "1.0.0",
   "description": "mustache template -> Elm compiler",
-  "main": "index.js",
+  "main": "src/main/js/compile.js",
   "scripts": {
     "pretest": "npm run-script prepublish",
     "test": "(mkdir -p tmp && cd tmp && cp ../src/test/elm/elm-package.json ./ && mocha ../src/test/js)",

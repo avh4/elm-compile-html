@@ -1,0 +1,14 @@
+{
+  "name": "conversion-tool",
+  "version": "1.0.0",
+  "description": "conversion-tool server for elm-compile-html",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Aaron VonderHaar <gruen0aermel@gmail.com>",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.13.1"
+  }
+}

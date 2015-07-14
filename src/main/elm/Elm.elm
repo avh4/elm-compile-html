@@ -112,22 +112,24 @@ writeToken : (String -> r -> r) -> String -> (State,r) -> (State,r)
 writeToken reduce s (state,r) =
   let
     reduce' string (state,r) = (state,reduce string r)
-  in case state.whitespace of
-    NoSpace -> (state,r)
-      |> reduce' s
-      |> setWhitespace NoSpace
-    Space -> (state,r)
-      |> reduce' " "
-      |> reduce' s
-      |> setWhitespace NoSpace
-    NextLine -> (state,r)
-      |> reduce' "\n"
-      |> reduce' state.indent
-      |> reduce' s
-      |> setWhitespace NoSpace
+    fn = case state.whitespace of
+      NoSpace ->
+        reduce' s >>
+        setWhitespace NoSpace
+      Space ->
+        reduce' " " >>
+        reduce' s >>
+        setWhitespace NoSpace
+      NextLine ->
+        reduce' "\n" >>
+        reduce' state.indent >>
+        reduce' s >>
+        setWhitespace NoSpace
+  in
+    fn (state,r)
 
 write : (String -> r -> r) -> Expr -> (State,r) -> (State,r)
-write reduce expr (state,r) = 
+write reduce expr (state,r) =
   let
     write' = write reduce
     writeToken' = writeToken reduce

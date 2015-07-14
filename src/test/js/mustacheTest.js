@@ -89,6 +89,10 @@ describe('mustache', function() {
     return check('{{#b}}<a></a>{{/b}}', { b: true }, "<a></a>");
   });
 
+  it('should compile string preceded by group', function() {
+    return check('{{#b}}{{/b}}{{x}}', { x:'10', b:false }, '10');
+  });
+
   describe('official mustache spec', function() {
     mustacheSpec('interpolation', 'No Interpolation');
     mustacheSpec('interpolation', 'Basic Interpolation');

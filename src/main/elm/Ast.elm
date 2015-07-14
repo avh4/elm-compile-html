@@ -50,9 +50,14 @@ nodeToElm reduce node r = case node of
   MustacheBool name children -> r
     |> reduce Elm.StartIfToken
     |> reduce (Elm.ExprToken <| Elm.RefExpr ("model." ++ name))
-    --|> reduce Elm.StartList
+    |> reduce (Elm.startFnCall "Html.node")
+    |> reduce (Elm.string "div")
+    |> reduce Elm.StartList
+    |> reduce Elm.EndList
+    |> reduce Elm.StartList
     |> \r -> List.foldl (nodeToElm reduce) r children -- TODO: right direction?
-    --|> reduce Elm.EndList
+    |> reduce Elm.EndList
+    |> reduce Elm.endFnCall
     |> reduce (Elm.startFnCall "Html.text")
     |> reduce (Elm.ExprToken <| Elm.LiteralExpr <| Elm.StringLiteral "")
     |> reduce Elm.endFnCall
@@ -169,7 +174,13 @@ applyString reduce s r =
       |> Maybe.map (\m -> (m,MustacheOpen (m.match |> String.slice 3 -2)))
     endMatch = Regex.find (Regex.AtMost 1) (Regex.regex "{{/.*?}}") s |> toMaybe
       |> Maybe.map (\m -> (m,MustacheClose (m.match |> String.slice 3 -2)))
-    bestMatch = Maybe.oneOf [refMatch, openMatch, endMatch] -- TODO: get the first one
+    best a b = case (a,b) of
+      (Nothing,_) -> b
+      (_,Nothing) -> a
+      (Just (ma,_),Just (mb,_)) ->
+        if| ma.index <= mb.index -> a
+          | otherwise -> b
+    bestMatch = best refMatch (best openMatch endMatch)
   in
     case bestMatch of
       Just (m,t) -> r

@@ -1,6 +1,6 @@
 {
   "name": "elm-compile-html",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "description": "mustache template -> Elm compiler",
   "main": "src/main/js/compile.js",
   "scripts": {

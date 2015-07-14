@@ -91,7 +91,7 @@ type Node
   | MustacheBool String (List Node) {-reversed-}
 
 type Zipper
-  = OpenChild Zipper String (List Attr) (List Node) {-reversed-} -- TODO: rename to InChild
+  = InChild Zipper String (List Attr) (List Node) {-reversed-}
   | InMustache Zipper String (List Node) {-reversed-}
   | Root
 
@@ -103,9 +103,9 @@ type alias State =
 
 insertChild : Node -> State -> State
 insertChild n s = case s.zipper of
-  Root -> { s | zipper <- OpenChild Root "div" [] [n] }
-  OpenChild context tagname attrs left ->
-    { s | zipper <- OpenChild context tagname attrs (n::left) }
+  Root -> { s | zipper <- InChild Root "div" [] [n] }
+  InChild context tagname attrs left ->
+    { s | zipper <- InChild context tagname attrs (n::left) }
   InMustache context name left ->
     { s | zipper <- InMustache context name (n::left) }
 
@@ -120,12 +120,12 @@ start : String -> State
 start moduleName = { name = moduleName, zipper = Root, vars = [] }
 
 onOpenTag : String -> List Attr -> State -> State
-onOpenTag tagname attrs s = { s | zipper <- OpenChild s.zipper tagname attrs [] }
+onOpenTag tagname attrs s = { s | zipper <- InChild s.zipper tagname attrs [] }
 
 closeTag : String -> State -> Result String State
 closeTag tagname s = case s.zipper of
   Root -> Err "Close tag with no matching open"
-  OpenChild context tagname' attrs left ->
+  InChild context tagname' attrs left ->
     if tagname /= tagname' then
       Err <| "Expected closing " ++ tagname' ++ ", but got closing " ++ tagname
     else
@@ -137,11 +137,11 @@ end' : State -> Result String Node
 end' s = case s.zipper of
   Root -> Err "No content"
   InMustache _ name _ -> Err <| "Unclosed mustache group {{#" ++ name ++ "}}"
-  OpenChild Root "div" [] (single::[]) ->
+  InChild Root "div" [] (single::[]) ->
     Ok single
-  OpenChild Root tagname attrs left ->
+  InChild Root tagname attrs left ->
     Ok <| Node tagname attrs left
-  OpenChild context tagname attrs left ->
+  InChild context tagname attrs left ->
     { s | zipper <- context }
     |> insertChild (Node tagname attrs left)
     |> end'

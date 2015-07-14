@@ -71,51 +71,119 @@ type Expr
   | LiteralExpr Literal
   | RefExpr String
 
+
+type alias State =
+  { zipper : Zipper
+  , whitespace : Whitespace
+  , indent : String
+  }
+
+indent (state,r) = ({state | indent <- state.indent ++ "    "},r)
+unindent (state,r) = ({state | indent <- state.indent |> String.dropRight 4},r)
+
 type Zipper
   = Start
   | InList Zipper (List Expr) {-reversed-}
   | InFnCall Zipper String (List Expr) {-reversed-}
 
-write : (String -> r -> r) -> Expr -> r -> r
-write reduce expr r = case expr of
+setZipper z (state,r) = ({state | zipper <- z},r)
+
+type Whitespace
+  = NoSpace
+  | Space
+  | NextLine
+
+setWhitespace : Whitespace -> (State,r) -> (State,r)
+setWhitespace w (state,r) = ({state | whitespace <- w}, r)
+
+increaseWhitespace : Whitespace -> (State,r) -> (State,r)
+increaseWhitespace w (state,r) =
+  let
+    w' = case (w,state.whitespace) of
+      (_,NextLine) -> NextLine
+      (NextLine,_) -> NextLine
+      (_,Space) -> Space
+      _ -> w
+  in
+    setWhitespace w' (state,r)
+
+
+writeToken : (String -> r -> r) -> String -> (State,r) -> (State,r)
+writeToken reduce s (state,r) =
+  let
+    reduce' string (state,r) = (state,reduce string r)
+  in case state.whitespace of
+    NoSpace -> (state,r)
+      |> reduce' s
+      |> setWhitespace NoSpace
+    Space -> (state,r)
+      |> reduce' " "
+      |> reduce' s
+      |> setWhitespace NoSpace
+    NextLine -> (state,r)
+      |> reduce' "\n"
+      |> reduce' state.indent
+      |> reduce' s
+      |> setWhitespace NoSpace
+
+write : (String -> r -> r) -> Expr -> (State,r) -> (State,r)
+write reduce expr (state,r) = 
+  let
+    write' = write reduce
+    writeToken' = writeToken reduce
+    foldl' fn rest = \r -> List.foldl fn r rest
+    foldr' fn rest = \r -> List.foldr fn r rest
+  in case expr of
   ListExpr items -> case items of
-    [] -> r
-      |> reduce "[]"
-    (a::[]) -> r
-      |> reduce "[ "
-      |> write reduce a
-      |> reduce " ]"
-    (a::rest) -> r
-      |> reduce "[ "
-      |> write reduce a
-      |> \r -> List.foldl (\e r -> r |> reduce "\n    , " |> write reduce e) r rest
-      |> reduce "]"
-  ApplyExpr name exprs -> r
-    |> reduce name
-    |> \r -> List.foldr (\e r -> r |> reduce " " |> write reduce e) r exprs
-  IfExpr e1 e2 e3 -> r
-    |> reduce "if "
-    |> write reduce e1
-    |> reduce " then "
-    |> write reduce e2
-    |> reduce " else "
-    |> write reduce e3
+    [] -> (state,r)
+      |> writeToken' "[]"
+    (a::[]) -> (state,r)
+      |> writeToken' "["
+      |> increaseWhitespace Space
+      |> write' a
+      |> increaseWhitespace Space
+      |> writeToken' "]"
+    (a::rest) -> (state,r)
+      |> increaseWhitespace NextLine
+      |> writeToken' "["
+      |> increaseWhitespace Space
+      |> write' a
+      |> foldl' (\e r -> r |> increaseWhitespace NextLine |> writeToken' "," |> increaseWhitespace Space |> write' e) rest
+      |> increaseWhitespace NextLine
+      |> writeToken' "]"
+      |> increaseWhitespace NextLine
+  ApplyExpr name exprs -> (state,r)
+    |> writeToken' name
+    |> indent
+    |> foldr' (\e (state,r) -> (state,r) |> increaseWhitespace Space |> write' e) exprs
+    |> unindent
+  IfExpr e1 e2 e3 -> (state,r)
+    |> writeToken' "if "
+    |> write' e1
+    |> writeToken' " then "
+    |> write' e2
+    |> writeToken' " else "
+    |> write' e3
   LiteralExpr lit -> case lit of
-    StringLiteral s -> r
-      |> reduce "\""
-      |> reduce (s
+    StringLiteral s -> (state,r)
+      |> writeToken' "\""
+      |> writeToken' (s
         |> Regex.replace Regex.All (Regex.regex "\t") (always "\\t")
         |> Regex.replace Regex.All (Regex.regex "\n") (always "\\n")
         |> Regex.replace Regex.All (Regex.regex "\r") (always "\\r")
         )
-      |> reduce "\""
-  RefExpr name -> r
-    |> reduce name
+      |> writeToken' "\""
+  RefExpr name -> (state,r)
+    |> writeToken' name
 
-applyExpr reduce (state,value) expr = case state of
-  Start -> value |> write reduce expr |> (,) state
-  InList z es -> value |> (,) (InList z (expr::es))
-  InFnCall z n es -> value |> (,) (InFnCall z n (expr::es))
+applyExpr : (String -> r -> r) -> Expr -> (State,r) -> (State,r)
+applyExpr reduce expr (state,value) = case state.zipper of
+  Start -> (state,value)
+    |> write reduce expr
+  InList z es -> value
+    |> (,) { state | zipper <- InList z (expr::es) }
+  InFnCall z n es -> value
+    |> (,) { state | zipper <- InFnCall z n (expr::es) }
 
 applyType type' reduce value = case type' of
   TVar name -> value
@@ -134,70 +202,71 @@ applyTopLevelStatement reduce (state,value) statement = case statement of
     |> reduce "\n"
     |> (,) state
 
-step : (String -> r -> r) -> Token -> (Zipper,r) -> (Zipper,r)
-step reduce input (state,value) = case input of
+step : (String -> r -> r) -> Token -> (State,r) -> (State,r)
+step reduce input (state,value) =
+  let
+    reduce' = (\string (state,r) -> (state,reduce string r))
+    write' = write reduce
+    applyExpr' = applyExpr reduce
+    foldl' fn rest = \r -> List.foldl fn r rest
+    foldr' fn rest = \r -> List.foldr fn r rest
+  in case input of
   StartList -> value
-    |> (,) (InList state [])
-  EndList -> case state of
-    InList context items ->
-      applyExpr reduce (context,value) (ListExpr items)
+    |> (,) { state | zipper <- InList state.zipper [] }
+  EndList -> case state.zipper of
+    InList context items -> (state,value)
+      |> setZipper context
+      |> applyExpr' (ListExpr items)
     --_ -> Err
   StartFnCall name -> value
-    |> (,) (InFnCall state name [])
-  EndFnCall -> case state of
-    InFnCall context name exprs ->
-      applyExpr reduce (context,value) (ApplyExpr name exprs)
+    |> (,) { state | zipper <- InFnCall state.zipper name [] }
+  EndFnCall -> case state.zipper of
+    InFnCall context name exprs -> (state,value)
+      |> setZipper context
+      |> applyExpr' (ApplyExpr name exprs)
     --_ -> Err
-  Identifier name -> applyExpr reduce (state,value) (RefExpr name)
+  Identifier name -> (state,value) |> applyExpr' (RefExpr name)
   Tokens ts -> List.foldl (step reduce) (state,value) ts
   TopLevelStatementToken statement -> applyTopLevelStatement reduce (state,value) statement
-  ExprToken expr -> applyExpr reduce (state,value) expr
-  StartIfToken -> value |> reduce "if " |> (,) state
-  StartThenToken -> value |> reduce " then " |> (,) state
-  StartElseToken -> value |> reduce " else " |> (,) state
-  Equals -> value |> reduce " = "
-    |> (,) state
-  ListSeparator -> value |> reduce ", "
-    |> (,) state
-  Module name -> value
-    |> reduce "module "
-    |> reduce name
-    |> reduce " where\n\n"
-    |> (,) state
-  Import name Nothing [] -> value
-    |> reduce "import "
-    |> reduce name
-    |> reduce "\n"
-    |> (,) state
-  Import name (Just alias) [] -> value
-    |> reduce "import "
-    |> reduce name
-    |> reduce " as "
-    |> reduce alias
-    |> reduce "\n"
-    |> (,) state
-  Import name Nothing expose -> value
-    |> reduce "import "
-    |> reduce name
-    |> reduce " exposing ("
-    |> reduce (String.join "," expose)
-    |> reduce ")\n"
-    |> (,) state
-  TypeAnnotation name types -> value
-    |> reduce name
-    |> reduce " : "
-    |> reduce (String.join " -> " types)
-    |> reduce "\n"
-    |> (,) state
-  _ -> value
-    |> reduce "{- NOT YET IMPLEMENTED: \n"
-    |> reduce (Basics.toString input)
-    |> reduce "-}\n"
-    |> (,) state
+  ExprToken expr -> (state,value) |> applyExpr' expr
+  StartIfToken -> (state,value) |> reduce' "if "
+  StartThenToken -> (state,value) |> reduce' " then "
+  StartElseToken -> (state,value) |> reduce' " else "
+  Equals -> (state,value) |> reduce' " = "
+  ListSeparator -> (state,value) |> reduce' ", "
+  Module name -> (state,value)
+    |> reduce' "module "
+    |> reduce' name
+    |> reduce' " where\n\n"
+  Import name Nothing [] -> (state,value)
+    |> reduce' "import "
+    |> reduce' name
+    |> reduce' "\n"
+  Import name (Just alias) [] -> (state,value)
+    |> reduce' "import "
+    |> reduce' name
+    |> reduce' " as "
+    |> reduce' alias
+    |> reduce' "\n"
+  Import name Nothing expose -> (state,value)
+    |> reduce' "import "
+    |> reduce' name
+    |> reduce' " exposing ("
+    |> reduce' (String.join "," expose)
+    |> reduce' ")\n"
+  TypeAnnotation name types -> (state,value)
+    |> reduce' name
+    |> reduce' " : "
+    |> reduce' (String.join " -> " types)
+    |> reduce' "\n"
+  _ -> (state,value)
+    |> reduce' "{- NOT YET IMPLEMENTED: \n"
+    |> reduce' (Basics.toString input)
+    |> reduce' "-}\n"
 
-toString : Transducer Token String r Zipper
+toString : Transducer Token String r State
 toString =
-  { init = \reduce r -> (Start,r)
+  { init = \reduce r -> ({ zipper = Start, whitespace = NoSpace, indent = "" },r)
   , step = step
   , complete = \reduce (state,value) -> value
   }

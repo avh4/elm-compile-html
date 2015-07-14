@@ -36,7 +36,7 @@ nodeToElm reduce node r = case node of
     |> \r -> List.foldl (attrToElm reduce) r attrs
     |> reduce (Elm.endList)
     |> reduce (Elm.startList)
-    |> \r -> List.foldr (nodeToElm reduce) r children
+    |> \r -> List.foldl (nodeToElm reduce) r children
     |> reduce (Elm.endList)
     |> reduce (Elm.endFnCall)
   Text text -> r
@@ -85,13 +85,13 @@ type alias Vars = List (String,String)
 type Module = Module String Node Vars
 
 type Node
-  = Node String (List Attr) (List Node)
+  = Node String (List Attr) (List Node) {-reversed-}
   | Text String
   | MustacheString String
   | MustacheBool String (List Node) {-reversed-}
 
 type Zipper
-  = OpenChild Zipper String (List Attr) (List Node) (List Node) -- TODO: remove right -- TODO: rename to InChild
+  = OpenChild Zipper String (List Attr) (List Node) {-reversed-} -- TODO: rename to InChild
   | InMustache Zipper String (List Node) {-reversed-}
   | Root
 
@@ -103,9 +103,9 @@ type alias State =
 
 insertChild : Node -> State -> State
 insertChild n s = case s.zipper of
-  Root -> { s | zipper <- OpenChild Root "div" [] [n] [] }
-  OpenChild context tagname attrs left right ->
-    { s | zipper <- OpenChild context tagname attrs (n::left) right }
+  Root -> { s | zipper <- OpenChild Root "div" [] [n] }
+  OpenChild context tagname attrs left ->
+    { s | zipper <- OpenChild context tagname attrs (n::left) }
   InMustache context name left ->
     { s | zipper <- InMustache context name (n::left) }
 
@@ -120,30 +120,30 @@ start : String -> State
 start moduleName = { name = moduleName, zipper = Root, vars = [] }
 
 onOpenTag : String -> List Attr -> State -> State
-onOpenTag tagname attrs s = { s | zipper <- OpenChild s.zipper tagname attrs [] [] }
+onOpenTag tagname attrs s = { s | zipper <- OpenChild s.zipper tagname attrs [] }
 
 closeTag : String -> State -> Result String State
 closeTag tagname s = case s.zipper of
   Root -> Err "Close tag with no matching open"
-  OpenChild context tagname' attrs left right ->
+  OpenChild context tagname' attrs left ->
     if tagname /= tagname' then
       Err <| "Expected closing " ++ tagname' ++ ", but got closing " ++ tagname
     else
       { s | zipper <- context }
-      |> insertChild (Node tagname attrs ((List.reverse left) ++ right))
+      |> insertChild (Node tagname attrs left)
       |> Ok
 
 end' : State -> Result String Node
 end' s = case s.zipper of
   Root -> Err "No content"
   InMustache _ name _ -> Err <| "Unclosed mustache group {{#" ++ name ++ "}}"
-  OpenChild Root "div" [] (single::[]) [] ->
+  OpenChild Root "div" [] (single::[]) ->
     Ok single
-  OpenChild Root tagname attrs left right ->
-    Ok <| Node tagname attrs ((List.reverse left) ++ right)
-  OpenChild context tagname attrs left right ->
+  OpenChild Root tagname attrs left ->
+    Ok <| Node tagname attrs left
+  OpenChild context tagname attrs left ->
     { s | zipper <- context }
-    |> insertChild (Node tagname attrs ((List.reverse left) ++ right))
+    |> insertChild (Node tagname attrs left)
     |> end'
 
 end : State -> Result String Module

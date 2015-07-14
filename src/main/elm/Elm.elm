@@ -18,7 +18,7 @@ type Token
   | StartFnCall String | EndFnCall
   | TopLevelStatementToken TopLevelStatement
   | ExprToken Expr
-  | StartIfToken | StartThenToken | StartElseToken
+  | StartIfToken
 
 identifier = Identifier
 string s = ExprToken <| LiteralExpr <| StringLiteral s
@@ -85,6 +85,9 @@ type Zipper
   = Start
   | InList Zipper (List Expr) {-reversed-}
   | InFnCall Zipper String (List Expr) {-reversed-}
+  | InIf Zipper
+  | InIfThen Zipper Expr
+  | InIfThenElse Zipper Expr Expr
 
 setZipper z (state,r) = ({state | zipper <- z},r)
 
@@ -178,6 +181,11 @@ write reduce expr (state,r) =
   RefExpr name -> (state,r)
     |> writeToken' name
 
+format =
+  { tRecBind = \reduce (TRecBind k v) ->
+      reduce k >> reduce " : " >> applyType v reduce
+  }
+
 applyExpr : (String -> r -> r) -> Expr -> (State,r) -> (State,r)
 applyExpr reduce expr (state,value) = case state.zipper of
   Start -> (state,value)
@@ -186,14 +194,29 @@ applyExpr reduce expr (state,value) = case state.zipper of
     |> (,) { state | zipper <- InList z (expr::es) }
   InFnCall z n es -> value
     |> (,) { state | zipper <- InFnCall z n (expr::es) }
+  InIf z -> value
+    |> (,) { state | zipper <- InIfThen z expr }
+  InIfThen z e1 -> value
+    |> (,) { state | zipper <- InIfThenElse z e1 expr }
+  InIfThenElse z e1 e2 -> value
+    |> (,) {state | zipper <- z}
+    |> applyExpr reduce (IfExpr e1 e2 expr)
 
 applyType type' reduce value = case type' of
   TVar name -> value
     |> reduce name
-  TRecord bindings -> value
-    |> reduce "{ "
-    |> \r -> List.foldl (\(TRecBind k v) r -> r |> reduce k |> reduce " : " |> applyType v reduce) r bindings
-    |> reduce " }"
+  TRecord bindings -> case bindings of
+    [] -> value
+      |> reduce "{}"
+    (a::[]) -> value
+      |> reduce "{"
+      |> format.tRecBind reduce a
+      |> reduce "}"
+    (a::rest) -> value
+      |> reduce "{ "
+      |> format.tRecBind reduce a
+      |> \r -> List.foldl (\(TRecBind k v) -> reduce ", " >> reduce k >> reduce " : " >> applyType v reduce) r rest
+      |> reduce " }"
 
 applyTopLevelStatement reduce (state,value) statement = case statement of
   AliasDef name type' -> value
@@ -231,9 +254,8 @@ step reduce input (state,value) =
   Tokens ts -> List.foldl (step reduce) (state,value) ts
   TopLevelStatementToken statement -> applyTopLevelStatement reduce (state,value) statement
   ExprToken expr -> (state,value) |> applyExpr' expr
-  StartIfToken -> (state,value) |> reduce' "if "
-  StartThenToken -> (state,value) |> reduce' " then "
-  StartElseToken -> (state,value) |> reduce' " else "
+  StartIfToken -> value
+    |> (,) { state | zipper <- InIf state.zipper }
   Equals -> (state,value) |> reduce' " = "
   ListSeparator -> (state,value) |> reduce' ", "
   Module name -> (state,value)

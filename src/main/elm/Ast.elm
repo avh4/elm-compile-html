@@ -5,6 +5,8 @@ import Debug
 import Elm
 import Transducer as T exposing (Transducer, (>>>))
 import Transducer.Debug
+import Regex
+import String
 
 foldOne reduce init a = init |> reduce a
 
@@ -45,13 +47,15 @@ nodeToElm reduce node r = case node of
     |> reduce (Elm.startFnCall "Html.text")
     |> reduce (Elm.identifier ("model." ++ name))
     |> reduce (Elm.endFnCall)
-  MustacheBool name node -> r
+  MustacheBool name children -> r
     |> reduce Elm.StartIfToken
     |> reduce (Elm.ExprToken <| Elm.RefExpr ("model." ++ name))
-    |> reduce Elm.StartThenToken
-    |> nodeToElm reduce node
-    |> reduce Elm.StartElseToken
+    --|> reduce Elm.StartList
+    |> \r -> List.foldl (nodeToElm reduce) r children -- TODO: right direction?
+    --|> reduce Elm.EndList
+    |> reduce (Elm.startFnCall "Html.text")
     |> reduce (Elm.ExprToken <| Elm.LiteralExpr <| Elm.StringLiteral "")
+    |> reduce Elm.endFnCall
 
 toElm' : (Elm.Token -> r -> r) -> Module -> r -> r
 toElm' reduce m r = case m of
@@ -84,10 +88,11 @@ type Node
   = Node String (List Attr) (List Node)
   | Text String
   | MustacheString String
-  | MustacheBool String Node
+  | MustacheBool String (List Node) {-reversed-}
 
 type Zipper
-  = OpenChild Zipper String (List Attr) (List Node) (List Node)
+  = OpenChild Zipper String (List Attr) (List Node) (List Node) -- TODO: remove right -- TODO: rename to InChild
+  | InMustache Zipper String (List Node) {-reversed-}
   | Root
 
 type alias State =
@@ -101,8 +106,10 @@ insertChild n s = case s.zipper of
   Root -> { s | zipper <- OpenChild Root "div" [] [n] [] }
   OpenChild context tagname attrs left right ->
     { s | zipper <- OpenChild context tagname attrs (n::left) right }
+  InMustache context name left ->
+    { s | zipper <- InMustache context name (n::left) }
 
-addVar name type' s =
+addVar name type' s = -- TODO: Err if it already exists with a different type
   { s | vars <- (name,type') :: s.vars}
 
 --
@@ -129,6 +136,7 @@ closeTag tagname s = case s.zipper of
 end' : State -> Result String Node
 end' s = case s.zipper of
   Root -> Err "No content"
+  InMustache _ name _ -> Err <| "Unclosed mustache group {{#" ++ name ++ "}}"
   OpenChild Root "div" [] (single::[]) [] ->
     Ok single
   OpenChild Root tagname attrs left right ->
@@ -142,15 +150,52 @@ end : State -> Result String Module
 end s = end' s
   |> Result.map (\node -> Module s.name node s.vars)
 
+type Token
+  = Literal String
+  | MustacheReference String
+  | MustacheOpen String
+  | MustacheClose String
+
+toMaybe l = case l of
+  (a::_) -> Just a
+  _ -> Nothing
+
+applyString : (Token -> r -> r) -> String -> r -> r
+applyString reduce s r =
+  let
+    refMatch = Regex.find (Regex.AtMost 1) (Regex.regex "{{[^#/].*?}}") s |> toMaybe
+      |> Maybe.map (\m -> (m,MustacheReference (m.match |> String.slice 2 -2)))
+    openMatch = Regex.find (Regex.AtMost 1) (Regex.regex "{{#.*?}}") s |> toMaybe
+      |> Maybe.map (\m -> (m,MustacheOpen (m.match |> String.slice 3 -2)))
+    endMatch = Regex.find (Regex.AtMost 1) (Regex.regex "{{/.*?}}") s |> toMaybe
+      |> Maybe.map (\m -> (m,MustacheClose (m.match |> String.slice 3 -2)))
+    bestMatch = Maybe.oneOf [refMatch, openMatch, endMatch] -- TODO: get the first one
+  in
+    case bestMatch of
+      Just (m,t) -> r
+        |> reduce (Literal (String.left m.index s))
+        |> reduce t
+        |> applyString reduce (s |> String.dropLeft (m.index + (String.length m.match)))
+      Nothing -> r
+        |> reduce (Literal s)
+
 onText : String -> State -> State
-onText text s = case text of
-  "{{x}}" -> insertChild (MustacheString "x") s |> addVar "x" "String"
-  "{{#b}}Text{{/b}}" ->
-    insertChild (MustacheBool "b" (Text "Text")) s
-    |> addVar "b" "Bool"
-  "Hello, {{subject}}!\n" -> s
-    |> insertChild (Text "Hello, ")
-    |> insertChild (MustacheString "subject")
-    |> addVar "subject" "String"
-    |> insertChild (Text "!\n")
-  _ -> insertChild (Text text) s
+onText text s =
+  let
+    reduce token state = case token of
+      Literal "" -> state
+      Literal str -> state
+        |> insertChild (Text str)
+      MustacheReference name -> state
+        |> insertChild (MustacheString name)
+        |> addVar name "String"
+      MustacheOpen name ->
+        { state | zipper <- InMustache state.zipper name [] }
+      MustacheClose name -> case state.zipper of
+        InMustache context name left ->
+          { state | zipper <- context }
+          |> addVar name "Bool"
+          |> insertChild (MustacheBool name left)
+        --_ -> Err
+  in
+    applyString reduce text s

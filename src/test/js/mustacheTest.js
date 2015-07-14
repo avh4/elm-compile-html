@@ -13,16 +13,18 @@ var formatBoolean = function(b) {
 
 var formatRecord = function(vars) {
   var result = "{ ";
+  var varStrings = [];
   for (var k in vars) {
     var v = vars[k];
     if (typeof v == 'string') {
-      result += k + "=" + formatString(v);
+      varStrings.push(k + "=" + formatString(v));
     } else if (typeof v == 'boolean') {
-      result += k + "=" + formatBoolean(v);
+      varStrings.push(k + "=" + formatBoolean(v));
     } else {
       throw new Error('Unhandled type: ' + typeof v);
     }
   }
+  result += varStrings.join(", ");
   result += " }";
   return result;
 };
@@ -71,12 +73,20 @@ describe('mustache', function() {
     return check('{{x}}', { x: '10'}, '10');
   });
 
+  it('should compile multiple string variables', function() {
+    return check('{{x}},{{y}}', { x: 'X', y: 'Y' }, 'X,Y');
+  });
+
   it('should compile bool variables (true)', function() {
     return check('{{#b}}Text{{/b}}', { b: true }, "Text");
   });
 
   it('should compile bool variables (false)', function() {
     return check('{{#b}}Text{{/b}}', { b: false }, "");
+  });
+
+  it('should compile groups containing HTML', function() {
+    return check('{{#b}}<a></a>{{/b}}', { b: true }, "<a></a>");
   });
 
   describe('official mustache spec', function() {

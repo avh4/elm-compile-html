@@ -1,5 +1,5 @@
 {
-  "name": "elm-mustache",
+  "name": "elm-compile-html",
   "version": "1.0.0",
   "description": "mustache template -> Elm compiler",
   "main": "index.js",
